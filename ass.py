@@ -1,8 +1,9 @@
 from openai import OpenAI
 import os
 import time
+import json
 from data import question ,update_anwser , mess
-
+from tools import tools_list , get_stock_price
 def create_client():
     client = OpenAI(
         api_key=os.environ.get("OPENAI_API_KEY"),
@@ -14,7 +15,7 @@ def create_assistant(client):
     assistant = client.beta.assistants.create(
         instructions= "you are friendly chatbot",
         model="gpt-4-1106-preview",
-        tools=[{"type": "retrieval"}],
+        tools= tools_list,
         # file_ids=[file_id]
     )
     return assistant
@@ -36,6 +37,7 @@ def run_mess(client , assistant , thread):
     )
     return run
 def retrieve(thread , client,run):
+    tool_call = []
     answer_list = []
     while True:
         run_status = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
@@ -44,6 +46,30 @@ def retrieve(thread , client,run):
             for each in messages.data:
                 answer_list.append(each.content[0].text.value)
             break
+        elif run_status.status == 'requires_action' :
+            print("requied action") 
+            required_action  = run_status.required_action.submit_tool_outputs.tool_calls
+            print(required_action)
+            function_list = []
+            for each in required_action:
+                print(each.function.name)
+                function_call = each.function.name
+                argument = each.function.arguments
+                argument = json.loads(argument)
+                symbol = argument['symbol']
+                output_list = get_stock_price(symbol)
+                print(output_list)
+                
+                tool_call.append({
+                    "tool_call_id" : each.id,
+                    "output": output_list
+                })
+                print(tool_call)
+                client.beta.threads.runs.submit_tool_outputs(
+                thread_id= thread.id,
+                run_id= run.id,
+                tool_outputs=tool_call
+            )
         else:
             print(run_status.status)
             time.sleep(3)
@@ -56,25 +82,27 @@ def retrieve(thread , client,run):
 if __name__ == "__main__":
     key = 0
     value = ""
-   
-    
     client = create_client()
     assistant = create_assistant(client=client)
     while True:
         questions = question()
-        for k , v in questions.items():
-            key = k
-            value = v
-        thead = create_thread(client = client)
-        create_message = create_messages(thread=thead , client= client , question= value)
-        run =run_mess(thread= thead , assistant= assistant , client=client)
-        message = retrieve(thread= thead , client= client , run= run)
-        # print(message[0])
-        print(message)
-        if key != 0 :
-            session = update_anwser(key , message[0])
-
-    # print(mess(key))
+        if questions != None and questions != 0:
+            for k , v in questions.items():
+                key = k
+                value = v
+            print(value)
+            thead = create_thread(client = client)
+            create_message = create_messages(thread=thead , client= client , question= value)
+            run =run_mess(thread= thead , assistant= assistant , client=client)
+            message = retrieve(thread= thead , client= client , run= run)
+            print(message[0])
+            print(message)
+            if key != 0 :
+                session = update_anwser(key , message[0]) 
+        else:
+            print("no data")
+            time.sleep(2)
+    print(mess(key))
 
 
 

@@ -27,16 +27,19 @@ def question():
     data_list = session.query(UserData).all()
     if data_list:
         for data in data_list:
-            # if data.is_new == True:
-            question[data.Id] = data.question
+            if data.is_new == True:
+                question[data.Id] = data.question
+                return question
+            
     else:
         print("Không có dữ liệu")
-    return question
+        return 0
 def update_anwser(id , ans):
     Session = sessionmaker(bind=engine)
     session = Session()
     user_to_update = session.query(UserData).filter(UserData.Id == id).first()
     user_to_update.answer = ans
+    user_to_update.is_new = False
     session.commit()
     # for key , values in question.items():
     #     print(f"{key} + {values}")
