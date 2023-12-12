@@ -3,7 +3,7 @@ import os
 import time
 import json
 from data import question ,update_anwser , mess
-from tools import tools_list , get_stock_price
+from tools import tools_list , get_stock_price , get_weather
 def create_client():
     client = OpenAI(
         api_key=os.environ.get("OPENAI_API_KEY"),
@@ -52,23 +52,35 @@ def retrieve(thread , client,run):
             print(required_action)
             function_list = []
             for each in required_action:
-                print(each.function.name)
-                function_call = each.function.name
-                argument = each.function.arguments
-                argument = json.loads(argument)
-                symbol = argument['symbol']
-                output_list = get_stock_price(symbol)
-                print(output_list)
-                
-                tool_call.append({
-                    "tool_call_id" : each.id,
-                    "output": output_list
-                })
+                if each.function.name == "get_stock_price":
+                    print(each.function.name)
+                    function_call = each.function.name
+                    argument = each.function.arguments
+                    argument = json.loads(argument)
+                    symbol = argument['symbol']
+                    output_list = get_stock_price(symbol)
+                    tool_call.append({
+                        "tool_call_id" : each.id,
+                        "output": output_list
+                    })
+
+                    print(output_list)
+                elif each.function.name == "get_weather":
+                    a = each.function.arguments
+                    argument = json.loads(a)
+                    location = argument["location"]
+                    output_list = get_weather(location)
+                    output = json.dumps(output_list)
+                    tool_call.append({
+                        "tool_call_id": each.id,
+                        "output": output
+                    })
+              
                 print(tool_call)
-                client.beta.threads.runs.submit_tool_outputs(
-                thread_id= thread.id,
-                run_id= run.id,
-                tool_outputs=tool_call
+            client.beta.threads.runs.submit_tool_outputs(
+            thread_id= thread.id,
+            run_id= run.id,
+            tool_outputs=tool_call
             )
         else:
             print(run_status.status)
