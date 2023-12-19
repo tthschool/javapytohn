@@ -29,6 +29,7 @@ def question():
         for data in data_list:
             if data.is_new == True:
                 question[data.Id] = data.question
+                
                 return question
             
     else:
@@ -37,10 +38,15 @@ def question():
 def update_anwser(id , ans):
     Session = sessionmaker(bind=engine)
     session = Session()
+    print(id)
     user_to_update = session.query(UserData).filter(UserData.Id == id).first()
-    user_to_update.answer = ans
-    user_to_update.is_new = False
-    session.commit()
+    print(user_to_update)
+    try:
+        user_to_update.answer = ans
+        user_to_update.is_new = False
+        session.commit()
+    except:
+        print("erro")
     # for key , values in question.items():
     #     print(f"{key} + {values}")
 

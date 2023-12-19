@@ -4,6 +4,8 @@ import time
 import json
 from data import question ,update_anwser , mess
 from tools import tools_list , get_stock_price , get_weather
+from mysl import insert
+data = {}
 def create_client():
     client = OpenAI(
         api_key=os.environ.get("OPENAI_API_KEY"),
@@ -107,7 +109,9 @@ if __name__ == "__main__":
             create_message = create_messages(thread=thead , client= client , question= value)
             run =run_mess(thread= thead , assistant= assistant , client=client)
             message = retrieve(thread= thead , client= client , run= run)
+
             print(message[0])
+            insert(value , message[0])
             print(message)
             if key != 0 :
                 session = update_anwser(key , message[0]) 
